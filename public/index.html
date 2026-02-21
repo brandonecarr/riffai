@@ -725,18 +725,18 @@
     <p class="section-sub mx-auto">Bring your own OpenAI API key and only pay for what you use. No hidden fees.</p>
   </div>
 
-  <div class="pricing-grid">
+  <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); max-width: 760px; margin: 0 auto;">
     <div class="price-card">
-      <div class="plan-name">Starter</div>
+      <div class="plan-name">Free</div>
       <div class="price-amount"><span>$</span>0</div>
       <div class="price-per">forever free</div>
-      <div class="price-desc">Everything you need to get your AI executive team up and running.</div>
+      <div class="price-desc">Get started with your AI executive team at no cost.</div>
       <hr class="price-divider" />
       <ul class="price-features">
-        <li>Up to 3 AI executives</li>
-        <li>Daily standup meetings</li>
+        <li>1 AI executive agent</li>
+        <li>1 standup per day</li>
+        <li>1,000 character knowledge base</li>
         <li>Action item tracking</li>
-        <li>Business knowledge base</li>
         <li>Bring your own OpenAI key</li>
       </ul>
       <a href="#" class="btn-plan btn-plan-ghost">Download Free</a>
@@ -747,36 +747,30 @@
       <div class="plan-name">Pro</div>
       <div class="price-amount"><span>$</span>19</div>
       <div class="price-per">per month</div>
-      <div class="price-desc">Unlock your full C-suite and premium features for growing businesses.</div>
+      <div class="price-desc">Unlock your full C-suite and run standups without limits.</div>
       <hr class="price-divider" />
       <ul class="price-features">
         <li>Unlimited AI executives</li>
+        <li>Unlimited daily standups</li>
+        <li>Unlimited knowledge base</li>
         <li>Custom agent personas</li>
-        <li>Priority standup insights</li>
         <li>Org chart &amp; team structure</li>
         <li>Standup history &amp; archive</li>
-        <li>Early access to new features</li>
+        <li>Priority support</li>
       </ul>
-      <a href="#" class="btn-plan btn-plan-primary">Start Free Trial</a>
-    </div>
-
-    <div class="price-card">
-      <div class="plan-name">Enterprise</div>
-      <div class="price-amount" style="font-size:2rem">Custom</div>
-      <div class="price-per">volume pricing</div>
-      <div class="price-desc">For teams and organizations that need advanced controls and support.</div>
-      <hr class="price-divider" />
-      <ul class="price-features">
-        <li>Everything in Pro</li>
-        <li>Multi-user workspace</li>
-        <li>SSO &amp; admin controls</li>
-        <li>Custom agent deployment</li>
-        <li>Dedicated support</li>
-        <li>SLA guarantee</li>
-      </ul>
-      <a href="mailto:hello@riffai.com" class="btn-plan btn-plan-ghost">Contact Sales</a>
+      <a href="/api/create-checkout" class="btn-plan btn-plan-primary" id="pricing-upgrade-btn">Get Pro — $19/mo</a>
     </div>
   </div>
+  <script>
+    document.getElementById('pricing-upgrade-btn')?.addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        const res = await fetch('/api/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+      } catch(err) { alert('Could not start checkout. Please try again.'); }
+    });
+  </script>
 </section>
 
 <!-- ── FAQ ── -->

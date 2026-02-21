@@ -1,6 +1,11 @@
 {
   "buildCommand": "echo 'Static site — no build needed'",
-  "installCommand": "echo 'Skipping install'",
+  "installCommand": "echo 'Skipping root install'",
   "outputDirectory": "public",
-  "framework": null
+  "framework": null,
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }

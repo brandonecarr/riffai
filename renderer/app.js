@@ -153,6 +153,147 @@ const state = {
   pendingQuestions: [],   // questions collected this standup
 };
 
+// ── SUBSCRIPTION / PLAN SYSTEM ────────────────────────────────────────
+const PLAN_LIMITS = {
+  free: {
+    maxAgents:           1,
+    standupsPerDay:      1,
+    knowledgeBaseChars:  1000,
+  },
+  pro: {
+    maxAgents:           Infinity,
+    standupsPerDay:      Infinity,
+    knowledgeBaseChars:  Infinity,
+  },
+};
+
+const VERCEL_API = 'https://riffai.vercel.app/api';
+
+// Subscription state — loaded from storage on init, refreshed periodically
+let subscription = {
+  plan:        'free',    // 'free' | 'pro'
+  email:       '',
+  validatedAt: null,      // ISO date of last successful API check
+};
+
+async function loadSubscription() {
+  const saved = await window.api.storage.get('subscription');
+  if (saved) subscription = { ...subscription, ...saved };
+}
+
+async function saveSubscription() {
+  await window.api.storage.set('subscription', subscription);
+}
+
+// Checks Stripe via the Vercel API. Runs on launch + when email is entered.
+async function validateSubscription(email) {
+  if (!email) return;
+  try {
+    const res  = await fetch(`${VERCEL_API}/validate-subscription?email=${encodeURIComponent(email)}`);
+    const data = await res.json();
+    subscription.plan        = data.active ? 'pro' : 'free';
+    subscription.email       = email;
+    subscription.validatedAt = new Date().toISOString();
+    await saveSubscription();
+    return data;
+  } catch (e) {
+    console.warn('Subscription check failed (offline?):', e.message);
+    return null;
+  }
+}
+
+// Re-validates once per day in the background
+async function maybeRefreshSubscription() {
+  if (!subscription.email) return;
+  if (!subscription.validatedAt) { await validateSubscription(subscription.email); return; }
+  const hoursSince = (Date.now() - new Date(subscription.validatedAt).getTime()) / 36e5;
+  if (hoursSince >= 24) await validateSubscription(subscription.email);
+}
+
+function isPro()  { return subscription.plan === 'pro'; }
+function isFree() { return subscription.plan === 'free'; }
+function planLimits() { return PLAN_LIMITS[subscription.plan] || PLAN_LIMITS.free; }
+
+// Opens the Stripe checkout in the browser
+async function openUpgradeCheckout() {
+  try {
+    const res  = await fetch(`${VERCEL_API}/create-checkout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: subscription.email || '' }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.api.shell.openExternal(data.url);
+    } else {
+      showToast('Could not open checkout. Try again.');
+    }
+  } catch (e) {
+    showToast('Could not connect. Check your internet connection.');
+  }
+}
+
+// Shows the upgrade paywall modal
+function showUpgradeModal(reason) {
+  const existing = document.getElementById('upgrade-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'upgrade-modal';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:440px;text-align:center;padding:40px 36px">
+      <div style="font-size:48px;margin-bottom:12px">⚡</div>
+      <h2 style="margin:0 0 10px;font-size:22px;font-weight:700">Upgrade to Pro</h2>
+      <p style="color:var(--text-muted);margin:0 0 24px;line-height:1.6">${reason}</p>
+      <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;text-align:left">
+        <div style="font-weight:700;margin-bottom:12px;font-size:15px">Pro includes:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--text-muted)">
+          <div>✅ &nbsp;Unlimited AI agents</div>
+          <div>✅ &nbsp;Unlimited daily standups</div>
+          <div>✅ &nbsp;Unlimited knowledge base</div>
+          <div>✅ &nbsp;Priority support</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg" id="upgrade-cta" style="width:100%;margin-bottom:12px;background:linear-gradient(135deg,#0ea5e9,#7c3aed);border:none">
+        Upgrade to Pro — $19/mo
+      </button>
+      <button class="btn btn-secondary" id="upgrade-dismiss" style="width:100%">Maybe Later</button>
+      <p style="font-size:12px;color:var(--text-muted);margin:16px 0 0">
+        After subscribing, enter your email in <strong>Settings → Subscription</strong> to unlock Pro.
+      </p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#upgrade-cta').addEventListener('click', () => {
+    openUpgradeCheckout();
+    overlay.remove();
+  });
+  overlay.querySelector('#upgrade-dismiss').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+// Returns the number of standups already started today (completed or in-progress)
+function standupsToday() {
+  const today = new Date().toISOString().split('T')[0];
+  return state.standupHistory.filter(s => (s.date || '').startsWith(today)).length;
+}
+
+// Returns true if this is a new agent (not an edit) and free tier would exceed limit
+function wouldExceedAgentLimit() {
+  return isFree() && AGENT_ORDER.length >= planLimits().maxAgents;
+}
+
+// Returns true if free tier has already had a standup today
+function wouldExceedStandupLimit() {
+  return isFree() && standupsToday() >= planLimits().standupsPerDay;
+}
+
+// Returns true if a knowledge entry text exceeds the free-tier char limit
+function wouldExceedKnowledgeLimit(text) {
+  return isFree() && text.length > planLimits().knowledgeBaseChars;
+}
+
 // Returns the logo's absolute file:// URL by reading the hidden preload img —
 // the HTML parser already resolved '../assets/logo.png' to the correct absolute path.
 function getLogoSrc() {
@@ -166,6 +307,7 @@ async function init() {
   if (tbLogo) tbLogo.src = getLogoSrc();
 
   await loadAll();
+  await loadSubscription();
   updateUserCard();
   setupNav();
   renderSidebarAgents();
@@ -176,6 +318,8 @@ async function init() {
   }
   await seedKnowledgeIfEmpty();
   navigate(state.view);
+  // Refresh subscription status in the background after UI is loaded
+  setTimeout(() => maybeRefreshSubscription(), 3000);
 }
 
 async function loadAll() {
@@ -590,7 +734,13 @@ function renderDashboard() {
     <div class="dash-section-title" style="margin-top:24px">Your AI Executive Team</div>
     <div class="grid-4" id="dash-agents"></div>`;
 
-  wrap.querySelector('#dash-new-standup').addEventListener('click', () => navigate('standup'));
+  wrap.querySelector('#dash-new-standup').addEventListener('click', () => {
+    if (wouldExceedStandupLimit()) {
+      showUpgradeModal(`Free plan allows 1 standup per day. Upgrade to Pro for unlimited daily standups.`);
+      return;
+    }
+    navigate('standup');
+  });
 
   const histEl = wrap.querySelector('#dash-history');
   if (!state.standupHistory.length) {
@@ -1389,7 +1539,14 @@ function showSummaryModal(topic, summary, actions, exportResult, files = []) {
   overlay.querySelector('#m-files').addEventListener('click', () => { overlay.remove(); navigate('workspace'); });
   overlay.querySelector('#m-archive').addEventListener('click', () => { overlay.remove(); navigate('archive'); });
   overlay.querySelector('#m-dash').addEventListener('click', () => { overlay.remove(); navigate('dashboard'); });
-  overlay.querySelector('#m-new').addEventListener('click', () => { overlay.remove(); navigate('standup'); });
+  overlay.querySelector('#m-new').addEventListener('click', () => {
+    overlay.remove();
+    if (wouldExceedStandupLimit()) {
+      showUpgradeModal(`Free plan allows 1 standup per day. Upgrade to Pro for unlimited daily standups.`);
+      return;
+    }
+    navigate('standup');
+  });
   if (exportResult?.success) {
     overlay.querySelector('#m-finder').addEventListener('click', () => window.api.shell.showInFinder(exportResult.path));
   }
@@ -1635,7 +1792,13 @@ function renderOrgChart() {
       <div class="view-sub">${bizName()} AI Executive Team</div>
     </div>`;
   const hireBtn = el('button', 'btn btn-primary', '👔 Hire Agent');
-  hireBtn.addEventListener('click', () => showHireAgentModal());
+  hireBtn.addEventListener('click', () => {
+    if (wouldExceedAgentLimit()) {
+      showUpgradeModal(`Free plan includes 1 AI agent. Upgrade to Pro to build your full executive team with unlimited agents.`);
+      return;
+    }
+    showHireAgentModal();
+  });
   headerDiv.appendChild(hireBtn);
   wrap.appendChild(headerDiv);
 
@@ -1826,6 +1989,10 @@ function renderKnowledge(agentId) {
   wrap.querySelector('#btn-save-note').addEventListener('click', async () => {
     const note = wrap.querySelector('#manual-note').value.trim();
     if (!note) return;
+    if (wouldExceedKnowledgeLimit(note)) {
+      showUpgradeModal(`Free plan limits knowledge base entries to ${planLimits().knowledgeBaseChars.toLocaleString()} characters. Upgrade to Pro for unlimited knowledge.`);
+      return;
+    }
     k.manualNotes = note;
     k.learnings.push({
       id: `l_manual_${Date.now()}`,
@@ -1923,6 +2090,38 @@ function renderSettings() {
       </div>
 
       <div class="card mb-6">
+        <div style="font-size:15px;font-weight:800;margin-bottom:16px">⚡ Subscription</div>
+        ${isPro() ? `
+          <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(124,58,237,0.15));border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:14px 16px;margin-bottom:12px">
+            <div style="font-size:28px">⚡</div>
+            <div>
+              <div style="font-weight:700;font-size:14px">RiffAI Pro — Active</div>
+              <div style="font-size:12px;color:var(--text-muted)">${subscription.email} · Unlimited agents, standups, and knowledge</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-manage-sub">Manage Subscription</button>
+        ` : `
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+            <div style="font-size:28px">🆓</div>
+            <div>
+              <div style="font-weight:700;font-size:14px">Free Plan</div>
+              <div style="font-size:12px;color:var(--text-muted)">1 agent · 1 standup/day · 1,000 char knowledge limit</div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Already subscribed? Enter your email to activate Pro</label>
+            <div style="display:flex;gap:8px">
+              <input type="email" id="sub-email" class="form-input" placeholder="your@email.com" value="${subscription.email || ''}" style="flex:1">
+              <button class="btn btn-secondary btn-sm" id="btn-activate-pro" style="white-space:nowrap">Activate Pro</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-upgrade-cta" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed);border:none;width:100%">
+            ⚡ Upgrade to Pro — $19/mo
+          </button>
+        `}
+      </div>
+
+      <div class="card mb-6">
         <div style="font-size:15px;font-weight:800;margin-bottom:12px">🗑️ Data</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Reset all standup history and agent knowledge. Agents will be re-seeded from doogoodscoopers.com on next launch.</div>
         <button class="btn btn-danger btn-sm" id="btn-clear">Clear All Data</button>
@@ -1952,6 +2151,29 @@ function renderSettings() {
     showToast('Settings saved!');
   });
   wrap.querySelector('#btn-cancel').addEventListener('click', () => navigate('dashboard'));
+
+  // Subscription buttons
+  if (isPro()) {
+    wrap.querySelector('#btn-manage-sub')?.addEventListener('click', () => {
+      window.api.shell.openExternal('https://billing.stripe.com/p/login/');
+    });
+  } else {
+    wrap.querySelector('#btn-upgrade-cta')?.addEventListener('click', () => openUpgradeCheckout());
+    wrap.querySelector('#btn-activate-pro')?.addEventListener('click', async () => {
+      const email = wrap.querySelector('#sub-email')?.value.trim();
+      if (!email) { showToast('Enter your email first.'); return; }
+      showToast('Checking subscription…');
+      const result = await validateSubscription(email);
+      if (result?.active) {
+        showToast('✅ Pro activated! Enjoy unlimited access.');
+        navigate('settings');
+      } else if (result) {
+        showToast('No active Pro subscription found for that email.');
+      } else {
+        showToast('Could not connect. Check your internet.');
+      }
+    });
+  }
   wrap.querySelector('#btn-clear').addEventListener('click', async () => {
     if (!confirm('Clear all data and restart setup? This removes all standups, agent knowledge, and your team. You\'ll go through the setup wizard again.')) return;
     // Wipe standup history, action items, and all agent knowledge
@@ -2086,6 +2308,12 @@ function showHireAgentModal(existingAgentId = null) {
       showToast(`${name} updated.`);
       navigate(`knowledge-${existingAgentId}`);
     } else {
+      // Plan limit check
+      if (wouldExceedAgentLimit()) {
+        overlay.remove();
+        showUpgradeModal(`Free plan includes 1 AI agent. Upgrade to Pro to build your full executive team with unlimited agents.`);
+        return;
+      }
       const base = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
       const id   = base + '_' + Date.now().toString(36).slice(-4);
       AGENTS[id] = { id, name, title, avatar, color, isDefault: false, persona, focus, reportsTo: reportsTo || null };
