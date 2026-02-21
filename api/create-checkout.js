@@ -30,8 +30,8 @@ module.exports = async (req, res) => {
       subscription_data: {
         metadata: { app: 'riffai' },
       },
-      success_url: 'https://riffai.vercel.app/success.html?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url:  'https://riffai.vercel.app/',
+      success_url: `https://${req.headers.host}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `https://${req.headers.host}/`,
       allow_promotion_codes: true,
     });
 
