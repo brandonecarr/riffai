@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:; connect-src https://api.openai.com;" />
+  <title>RiffAI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Hidden img so the HTML parser resolves the asset path to an absolute file:// URL.
+       JavaScript reads .src from this element to get the correct absolute path. -->
+  <img id="riffai-logo-preload" src="../assets/logo.png" alt="" aria-hidden="true"
+       style="display:none;position:absolute;pointer-events:none" />
+
+  <div id="app">
+    <div id="titlebar">
+      <div class="titlebar-traffic"></div>
+      <span class="titlebar-title">
+        <img id="titlebar-logo-img" class="titlebar-logo" alt="RiffAI" />
+        RiffAI
+      </span>
+    </div>
+    <div id="layout">
+      <nav id="sidebar">
+        <div class="nav-section">
+          <div class="user-card">
+            <div class="user-avatar">👑</div>
+            <div class="user-info">
+              <div class="user-name">Brandon</div>
+              <div class="user-role">CEO &amp; Founder</div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-label">WORKSPACE</div>
+          <button class="nav-item active" data-view="dashboard">
+            <span class="nav-icon">⚡</span> Dashboard
+          </button>
+          <button class="nav-item" data-view="standup">
+            <span class="nav-icon">🎯</span> Standup Room
+          </button>
+          <button class="nav-item" data-view="archive">
+            <span class="nav-icon">🗂️</span> Archive
+          </button>
+          <button class="nav-item" data-view="workspace">
+            <span class="nav-icon">📁</span> Files
+          </button>
+          <button class="nav-item" data-view="orgchart">
+            <span class="nav-icon">🏢</span> Organization
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="nav-label">AGENTS</div>
+          <div id="nav-agents"></div>
+        </div>
+        <div class="nav-bottom">
+          <button class="nav-item" data-view="settings">
+            <span class="nav-icon">⚙️</span> Settings
+          </button>
+        </div>
+      </nav>
+      <main id="content"></main>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
