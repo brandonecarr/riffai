@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RiffAI — Pricing</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080f;--bg2:#0d0f1a;--bg3:#111422;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8eaf0;--muted:#7a80a0;
+  --cyan:#00c8ff;--purple:#7c3aed;--purple2:#a855f7;
+  --grad:linear-gradient(135deg,#00c8ff 0%,#7c3aed 100%);
+  --grad2:linear-gradient(135deg,#7c3aed 0%,#a855f7 60%,#00c8ff 100%);
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5%;height:68px;background:rgba(7,8,15,0.88);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;color:#fff;text-decoration:none}
+.nav-logo-icon{width:32px;height:32px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff}
+.btn-nav{padding:8px 20px;border-radius:8px;font-size:.875rem;font-weight:600;background:var(--grad);border:none;cursor:pointer;color:#fff;text-decoration:none}
+
+/* HERO */
+.hero{padding:140px 5% 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(124,58,237,.18) 0%,transparent 70%);pointer-events:none}
+.section-label{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px}
+h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:16px}
+.gradient-text{background:var(--grad2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{font-size:1.1rem;color:var(--muted);max-width:520px;margin:0 auto 56px}
+
+/* PRICING CARDS */
+.pricing-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:820px;margin:0 auto;padding:0 5% 100px;position:relative;z-index:1}
+@media(max-width:640px){.pricing-wrap{grid-template-columns:1fr}}
+
+.plan-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;position:relative;transition:transform .2s,border-color .2s}
+.plan-card:hover{transform:translateY(-4px)}
+.plan-card.featured{border-color:rgba(0,200,255,.35);background:linear-gradient(160deg,rgba(0,200,255,.06) 0%,rgba(124,58,237,.08) 100%)}
+.plan-card.featured::before{content:'Most Popular';position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--grad);color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 16px;border-radius:100px;white-space:nowrap}
+
+.plan-name{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.plan-price{display:flex;align-items:baseline;gap:4px;margin-bottom:4px}
+.plan-price .dollar{font-size:1.4rem;font-weight:700;color:var(--muted)}
+.plan-price .amount{font-size:3.2rem;font-weight:800;line-height:1;letter-spacing:-.04em}
+.plan-price .period{font-size:.9rem;color:var(--muted);margin-left:2px}
+.plan-tagline{font-size:.85rem;color:var(--muted);margin-bottom:28px;min-height:36px}
+
+.plan-divider{border:none;border-top:1px solid var(--border);margin-bottom:24px}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:32px}
+.plan-features li{display:flex;align-items:flex-start;gap:10px;font-size:.9rem;color:var(--text)}
+.plan-features li .check{width:18px;height:18px;border-radius:50%;background:rgba(0,200,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;margin-top:1px}
+.plan-features li .check.pro{background:rgba(0,200,255,.2);color:var(--cyan)}
+.plan-features li .check.free{background:rgba(255,255,255,.06);color:var(--muted)}
+.limit-badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--muted);margin-left:4px;font-weight:500}
+
+.btn-plan{display:block;width:100%;padding:14px;border-radius:12px;font-size:1rem;font-weight:700;text-align:center;cursor:pointer;border:none;transition:opacity .2s,transform .15s;text-decoration:none}
+.btn-plan:hover{opacity:.9;transform:translateY(-1px)}
+.btn-free{background:rgba(255,255,255,.08);color:#fff;border:1px solid var(--border2)}
+.btn-free:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-pro{background:var(--grad);color:#fff}
+
+/* DOWNLOAD SECTION */
+.download-section{padding:80px 5% 100px;text-align:center;position:relative}
+.download-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(0,200,255,.07) 0%,transparent 70%);pointer-events:none}
+.download-section h2{font-size:clamp(2rem,4vw,3rem);font-weight:800;letter-spacing:-.03em;margin-bottom:14px}
+.download-section .sub{margin-bottom:48px}
+
+.os-cards{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+.os-card{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:36px 40px;min-width:260px;text-align:center;transition:border-color .2s,transform .2s;cursor:pointer;text-decoration:none;display:block}
+.os-card:hover{border-color:rgba(0,200,255,.4);transform:translateY(-4px)}
+.os-icon{font-size:52px;margin-bottom:16px;display:block}
+.os-name{font-size:1.15rem;font-weight:700;margin-bottom:6px}
+.os-desc{font-size:.85rem;color:var(--muted);margin-bottom:20px}
+.os-badge{display:inline-block;padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:600;background:rgba(0,200,255,.1);color:var(--cyan);border:1px solid rgba(0,200,255,.2)}
+.download-note{margin-top:32px;font-size:.83rem;color:var(--muted)}
+.download-note a{color:var(--cyan);text-decoration:none}
+.download-note a:hover{text-decoration:underline}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:32px 5%;display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap;gap:12px}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:#fff}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:48px 40px;max-width:440px;width:90%;text-align:center}
+.modal h3{font-size:1.6rem;font-weight:800;margin-bottom:12px}
+.modal p{color:var(--muted);margin-bottom:28px;font-size:.95rem}
+.modal .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">R</div>
+    RiffAI
+  </a>
+  <a href="/" class="btn-nav" style="background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text)">← Back to Home</a>
+</nav>
+
+<!-- PRICING HERO -->
+<section class="hero">
+  <div class="section-label">Pricing</div>
+  <h1>Simple, honest <span class="gradient-text">pricing</span></h1>
+  <p class="sub">Start free and upgrade when you're ready. No surprise fees — you bring your own OpenAI key.</p>
+</section>
+
+<!-- PRICING CARDS -->
+<div class="pricing-wrap">
+
+  <!-- FREE -->
+  <div class="plan-card">
+    <div class="plan-name">Free</div>
+    <div class="plan-price">
+      <span class="dollar">$</span>
+      <span class="amount">0</span>
+      <span class="period">/ forever</span>
+    </div>
+    <div class="plan-tagline">Get your AI executive team running at no cost.</div>
+    <hr class="plan-divider"/>
+    <ul class="plan-features">
+      <li><span class="check free">✓</span><span>1 AI executive agent <span class="limit-badge">limit</span></span></li>
+      <li><span class="check free">✓</span><span>1 standup per day <span class="limit-badge">limit</span></span></li>
+      <li><span class="check free">✓</span><span>1,000 character knowledge base <span class="limit-badge">limit</span></span></li>
+      <li><span class="check free">✓</span><span>Action item tracking</span></li>
+      <li><span class="check free">✓</span><span>Bring your own OpenAI key</span></li>
+    </ul>
+    <button class="btn-plan btn-free" onclick="scrollToDownload()">Download Free ↓</button>
+  </div>
+
+  <!-- PRO -->
+  <div class="plan-card featured">
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">
+      <span class="dollar">$</span>
+      <span class="amount gradient-text">19</span>
+      <span class="period">/ month</span>
+    </div>
+    <div class="plan-tagline">Unlimited agents, standups, and knowledge. Cancel anytime.</div>
+    <hr class="plan-divider"/>
+    <ul class="plan-features">
+      <li><span class="check pro">✓</span><span>Unlimited AI executives</span></li>
+      <li><span class="check pro">✓</span><span>Unlimited daily standups</span></li>
+      <li><span class="check pro">✓</span><span>Unlimited knowledge base</span></li>
+      <li><span class="check pro">✓</span><span>Custom agent personas & org chart</span></li>
+      <li><span class="check pro">✓</span><span>Standup history & archive</span></li>
+      <li><span class="check pro">✓</span><span>License key — works on any machine</span></li>
+      <li><span class="check pro">✓</span><span>Priority support</span></li>
+    </ul>
+    <button class="btn-plan btn-pro" id="btn-get-pro">Get Pro — $19/mo</button>
+  </div>
+
+</div>
+
+<!-- DOWNLOAD SECTION -->
+<section class="download-section" id="download">
+  <div class="section-label">Get Started Today</div>
+  <h2>Download <span class="gradient-text">RiffAI Free</span></h2>
+  <p class="sub">Install on Mac or Windows. No account required — just add your OpenAI key in Settings.</p>
+
+  <div class="os-cards">
+    <a href="https://github.com/brandonecarr/riffai/releases/latest/download/RiffAI-latest-universal.dmg"
+       class="os-card" id="mac-download">
+      <span class="os-icon"></span>
+      <div class="os-name">macOS</div>
+      <div class="os-desc">macOS 12 Monterey or later<br>Apple Silicon &amp; Intel universal</div>
+      <span class="os-badge">Download .dmg</span>
+    </a>
+
+    <a href="https://github.com/brandonecarr/riffai/releases/latest/download/RiffAI-Setup-latest.exe"
+       class="os-card" id="win-download">
+      <span class="os-icon">🪟</span>
+      <div class="os-name">Windows</div>
+      <div class="os-desc">Windows 10 or later<br>64-bit and 32-bit</div>
+      <span class="os-badge">Download .exe</span>
+    </a>
+  </div>
+
+  <p class="download-note">
+    Already subscribed? <a href="#" onclick="scrollToPro(); return false;">Upgrade to Pro</a> and enter your license key in the app under Settings → Subscription.
+  </p>
+</section>
+
+<footer>
+  <span>© 2025 DooGoodScoopers · RiffAI</span>
+  <div style="display:flex;gap:24px">
+    <a href="/">Home</a>
+    <a href="mailto:brandonecarr@gmail.com">Support</a>
+  </div>
+</footer>
+
+<!-- CHECKOUT OVERLAY -->
+<div class="overlay" id="checkout-overlay">
+  <div class="modal">
+    <div class="spinner"></div>
+    <h3>Opening checkout…</h3>
+    <p>You'll be redirected to Stripe's secure payment page. Your subscription includes a license key delivered instantly after payment.</p>
+  </div>
+</div>
+
+<script>
+  function scrollToDownload() {
+    document.getElementById('download').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function scrollToPro() {
+    document.querySelector('.plan-card.featured').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('btn-get-pro').addEventListener('click', async () => {
+    document.getElementById('checkout-overlay').classList.add('open');
+    try {
+      const res  = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        document.getElementById('checkout-overlay').classList.remove('open');
+        alert('Could not start checkout. Please try again.');
+      }
+    } catch (e) {
+      document.getElementById('checkout-overlay').classList.remove('open');
+      alert('Connection error. Please try again.');
+    }
+  });
+
+  // Auto-detect OS and highlight the right download card
+  const isMac = navigator.platform.toUpperCase().includes('MAC') ||
+                navigator.userAgent.includes('Mac');
+  const card = document.getElementById(isMac ? 'mac-download' : 'win-download');
+  if (card) {
+    card.style.borderColor = 'rgba(0,200,255,.4)';
+    card.querySelector('.os-badge').style.background = 'rgba(0,200,255,.2)';
+  }
+</script>
+</body>
+</html>

@@ -171,9 +171,10 @@ const VERCEL_API = 'https://riffai.vercel.app/api';
 
 // Subscription state — loaded from storage on init, refreshed periodically
 let subscription = {
-  plan:        'free',    // 'free' | 'pro'
-  email:       '',
-  validatedAt: null,      // ISO date of last successful API check
+  plan:        'free',       // 'free' | 'pro'
+  licenseKey:  '',           // RIFF-XXXX-XXXX-XXXX-XXXX
+  email:       '',           // subscriber email (display only)
+  validatedAt: null,         // ISO timestamp of last API check
 };
 
 async function loadSubscription() {
@@ -185,52 +186,40 @@ async function saveSubscription() {
   await window.api.storage.set('subscription', subscription);
 }
 
-// Checks Stripe via the Vercel API. Runs on launch + when email is entered.
-async function validateSubscription(email) {
-  if (!email) return;
+// Validates a license key against the Vercel/Stripe API
+async function validateLicense(key) {
+  if (!key) return null;
+  const clean = key.trim().toUpperCase();
   try {
-    const res  = await fetch(`${VERCEL_API}/validate-subscription?email=${encodeURIComponent(email)}`);
+    const res  = await fetch(`${VERCEL_API}/validate-license?key=${encodeURIComponent(clean)}`);
     const data = await res.json();
     subscription.plan        = data.active ? 'pro' : 'free';
-    subscription.email       = email;
+    subscription.licenseKey  = clean;
+    subscription.email       = data.email || subscription.email;
     subscription.validatedAt = new Date().toISOString();
     await saveSubscription();
     return data;
   } catch (e) {
-    console.warn('Subscription check failed (offline?):', e.message);
+    console.warn('License check failed (offline?):', e.message);
     return null;
   }
 }
 
-// Re-validates once per day in the background
+// Re-validates once per day in the background so revoked licenses stop working
 async function maybeRefreshSubscription() {
-  if (!subscription.email) return;
-  if (!subscription.validatedAt) { await validateSubscription(subscription.email); return; }
+  if (!subscription.licenseKey) return;
+  if (!subscription.validatedAt) { await validateLicense(subscription.licenseKey); return; }
   const hoursSince = (Date.now() - new Date(subscription.validatedAt).getTime()) / 36e5;
-  if (hoursSince >= 24) await validateSubscription(subscription.email);
+  if (hoursSince >= 24) await validateLicense(subscription.licenseKey);
 }
 
-function isPro()  { return subscription.plan === 'pro'; }
-function isFree() { return subscription.plan === 'free'; }
+function isPro()      { return subscription.plan === 'pro'; }
+function isFree()     { return subscription.plan === 'free'; }
 function planLimits() { return PLAN_LIMITS[subscription.plan] || PLAN_LIMITS.free; }
 
-// Opens the Stripe checkout in the browser
-async function openUpgradeCheckout() {
-  try {
-    const res  = await fetch(`${VERCEL_API}/create-checkout`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email: subscription.email || '' }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.api.shell.openExternal(data.url);
-    } else {
-      showToast('Could not open checkout. Try again.');
-    }
-  } catch (e) {
-    showToast('Could not connect. Check your internet connection.');
-  }
+// Opens the Stripe checkout / pricing page in the browser
+function openUpgradeCheckout() {
+  window.api.shell.openExternal('https://riffai.vercel.app/pricing.html');
 }
 
 // Shows the upgrade paywall modal
@@ -242,7 +231,7 @@ function showUpgradeModal(reason) {
   overlay.id = 'upgrade-modal';
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
-    <div class="modal-box" style="max-width:440px;text-align:center;padding:40px 36px">
+    <div class="modal-box" style="max-width:460px;text-align:center;padding:40px 36px">
       <div style="font-size:48px;margin-bottom:12px">⚡</div>
       <h2 style="margin:0 0 10px;font-size:22px;font-weight:700">Upgrade to Pro</h2>
       <p style="color:var(--text-muted);margin:0 0 24px;line-height:1.6">${reason}</p>
@@ -256,11 +245,11 @@ function showUpgradeModal(reason) {
         </div>
       </div>
       <button class="btn btn-primary btn-lg" id="upgrade-cta" style="width:100%;margin-bottom:12px;background:linear-gradient(135deg,#0ea5e9,#7c3aed);border:none">
-        Upgrade to Pro — $19/mo
+        ⚡ Get Pro — $19/mo
       </button>
       <button class="btn btn-secondary" id="upgrade-dismiss" style="width:100%">Maybe Later</button>
       <p style="font-size:12px;color:var(--text-muted);margin:16px 0 0">
-        After subscribing, enter your email in <strong>Settings → Subscription</strong> to unlock Pro.
+        After subscribing, enter your license key in <strong>Settings → Subscription</strong>.
       </p>
     </div>
   `;
@@ -2092,31 +2081,38 @@ function renderSettings() {
       <div class="card mb-6">
         <div style="font-size:15px;font-weight:800;margin-bottom:16px">⚡ Subscription</div>
         ${isPro() ? `
-          <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(124,58,237,0.15));border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:14px 16px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(124,58,237,0.15));border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:14px 16px;margin-bottom:16px">
             <div style="font-size:28px">⚡</div>
             <div>
               <div style="font-weight:700;font-size:14px">RiffAI Pro — Active</div>
-              <div style="font-size:12px;color:var(--text-muted)">${subscription.email} · Unlimited agents, standups, and knowledge</div>
+              <div style="font-size:12px;color:var(--text-muted)">Unlimited agents, standups &amp; knowledge</div>
             </div>
           </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;font-family:monospace;letter-spacing:.05em">${subscription.licenseKey}</div>
           <button class="btn btn-secondary btn-sm" id="btn-manage-sub">Manage Subscription</button>
         ` : `
-          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:20px">
             <div style="font-size:28px">🆓</div>
             <div>
               <div style="font-weight:700;font-size:14px">Free Plan</div>
               <div style="font-size:12px;color:var(--text-muted)">1 agent · 1 standup/day · 1,000 char knowledge limit</div>
             </div>
           </div>
-          <div class="form-group" style="margin-bottom:12px">
-            <label class="form-label">Already subscribed? Enter your email to activate Pro</label>
-            <div style="display:flex;gap:8px">
-              <input type="email" id="sub-email" class="form-input" placeholder="your@email.com" value="${subscription.email || ''}" style="flex:1">
-              <button class="btn btn-secondary btn-sm" id="btn-activate-pro" style="white-space:nowrap">Activate Pro</button>
-            </div>
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" style="margin-bottom:6px;display:block">Have a license key? Enter it below to activate Pro</label>
+            <input type="text" id="sub-license-key" class="form-input"
+              placeholder="RIFF-XXXX-XXXX-XXXX-XXXX"
+              value="${subscription.licenseKey || ''}"
+              style="font-family:monospace;letter-spacing:.05em;text-transform:uppercase"
+              maxlength="24"
+              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px">You receive your license key by email immediately after subscribing.</div>
           </div>
+          <button class="btn btn-secondary" id="btn-activate-license" style="width:100%;margin-bottom:10px">
+            Activate License Key
+          </button>
           <button class="btn btn-primary" id="btn-upgrade-cta" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed);border:none;width:100%">
-            ⚡ Upgrade to Pro — $19/mo
+            ⚡ Get Pro — $19/mo
           </button>
         `}
       </div>
@@ -2159,18 +2155,42 @@ function renderSettings() {
     });
   } else {
     wrap.querySelector('#btn-upgrade-cta')?.addEventListener('click', () => openUpgradeCheckout());
-    wrap.querySelector('#btn-activate-pro')?.addEventListener('click', async () => {
-      const email = wrap.querySelector('#sub-email')?.value.trim();
-      if (!email) { showToast('Enter your email first.'); return; }
-      showToast('Checking subscription…');
-      const result = await validateSubscription(email);
+
+    // Auto-format license key as user types: RIFF-XXXX-XXXX-XXXX-XXXX
+    const keyInput = wrap.querySelector('#sub-license-key');
+    if (keyInput) {
+      keyInput.addEventListener('input', () => {
+        let v = keyInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (v.startsWith('RIFF')) v = v.slice(4);
+        const parts = [];
+        parts.push('RIFF');
+        for (let i = 0; i < v.length && parts.length < 5; i += 4) {
+          parts.push(v.slice(i, i + 4));
+        }
+        keyInput.value = parts.join('-');
+      });
+    }
+
+    wrap.querySelector('#btn-activate-license')?.addEventListener('click', async () => {
+      const key = wrap.querySelector('#sub-license-key')?.value.trim().toUpperCase();
+      if (!key) { showToast('Enter your license key first.'); return; }
+      if (!/^RIFF-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
+        showToast('Invalid format. License keys look like: RIFF-XXXX-XXXX-XXXX-XXXX');
+        return;
+      }
+      showToast('Validating license…');
+      const result = await validateLicense(key);
       if (result?.active) {
         showToast('✅ Pro activated! Enjoy unlimited access.');
-        navigate('settings');
+        navigate('settings'); // re-render settings with Pro state
+      } else if (result?.reason === 'not_found') {
+        showToast('License key not found. Double-check and try again.');
+      } else if (result?.reason === 'subscription_inactive') {
+        showToast('This license has been cancelled or expired.');
       } else if (result) {
-        showToast('No active Pro subscription found for that email.');
+        showToast('License is not active. Please check your subscription.');
       } else {
-        showToast('Could not connect. Check your internet.');
+        showToast('Could not connect. Check your internet connection.');
       }
     });
   }

@@ -739,7 +739,7 @@
         <li>Action item tracking</li>
         <li>Bring your own OpenAI key</li>
       </ul>
-      <a href="#" class="btn-plan btn-plan-ghost">Download Free</a>
+      <a href="/pricing.html#download" class="btn-plan btn-plan-ghost">Download Free</a>
     </div>
 
     <div class="price-card featured">
@@ -758,18 +758,10 @@
         <li>Standup history &amp; archive</li>
         <li>Priority support</li>
       </ul>
-      <a href="/api/create-checkout" class="btn-plan btn-plan-primary" id="pricing-upgrade-btn">Get Pro — $19/mo</a>
+      <a href="/pricing.html" class="btn-plan btn-plan-primary">Get Pro — $19/mo</a>
     </div>
   </div>
   <script>
-    document.getElementById('pricing-upgrade-btn')?.addEventListener('click', async function(e) {
-      e.preventDefault();
-      try {
-        const res = await fetch('/api/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-      } catch(err) { alert('Could not start checkout. Please try again.'); }
-    });
   </script>
 </section>
 

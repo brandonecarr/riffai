@@ -1,10 +1,10 @@
 // api/webhook.js
 // Handles Stripe webhook events.
-// Currently logs events — extend this to send welcome emails, etc.
+// On subscription created: generates a license key and stores it in Customer metadata.
 //
-// In Stripe Dashboard → Webhooks, point to:
+// Stripe Dashboard → Webhooks → point to:
 //   https://your-vercel-url.vercel.app/api/webhook
-// Events to listen for:
+// Events to subscribe to:
 //   customer.subscription.created
 //   customer.subscription.deleted
 //   customer.subscription.updated
@@ -12,43 +12,65 @@
 
 const Stripe = require('stripe');
 
-// Vercel disables body parsing for raw webhook verification
-export const config = { api: { bodyParser: false } };
-
-async function buffer(readable) {
-  const chunks = [];
-  for await (const chunk of readable) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-  return Buffer.concat(chunks);
-}
-
+// Vercel must NOT parse the body — Stripe needs the raw bytes to verify signature
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const sig    = req.headers['stripe-signature'];
-  const buf    = await buffer(req);
+
+  // Collect raw body
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  const buf = Buffer.concat(chunks);
 
   let event;
   try {
     event = stripe.webhooks.constructEvent(buf, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('Webhook signature failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  switch (event.type) {
-    case 'customer.subscription.created':
-      console.log('New Pro subscriber:', event.data.object.customer);
-      break;
-    case 'customer.subscription.deleted':
-      console.log('Subscription cancelled:', event.data.object.customer);
-      break;
-    case 'invoice.payment_failed':
-      console.log('Payment failed for:', event.data.object.customer_email);
-      break;
-    default:
-      // Ignore other events
+  if (event.type === 'customer.subscription.created') {
+    const sub        = event.data.object;
+    const customerId = sub.customer;
+
+    try {
+      // Check if this customer already has a license key
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer.deleted) return res.status(200).json({ received: true });
+
+      if (!customer.metadata?.riffai_license) {
+        // Generate and store license key
+        const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const seg    = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        const license = `RIFF-${seg()}-${seg()}-${seg()}-${seg()}`;
+
+        await stripe.customers.update(customerId, {
+          metadata: { riffai_license: license },
+        });
+
+        console.log(`License generated for ${customer.email}: ${license}`);
+      }
+    } catch (err) {
+      console.error('License generation error:', err.message);
+    }
   }
 
-  res.status(200).json({ received: true });
+  if (event.type === 'customer.subscription.deleted') {
+    // Subscription cancelled — license is automatically revoked because
+    // validate-license checks for an ACTIVE subscription. No extra action needed.
+    const sub = event.data.object;
+    console.log('Subscription cancelled for customer:', sub.customer);
+  }
+
+  if (event.type === 'invoice.payment_failed') {
+    const inv = event.data.object;
+    console.log('Payment failed for:', inv.customer_email);
+    // Stripe will automatically move the subscription to past_due / canceled
+    // after the retry period ends. validate-license will reject it then.
+  }
+
+  return res.status(200).json({ received: true });
 };

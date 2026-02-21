@@ -5,86 +5,134 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Welcome to RiffAI Pro!</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0D1117;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-  }
-  .card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 56px 48px;
-    max-width: 520px;
-    width: 100%;
-    text-align: center;
-  }
-  .icon { font-size: 72px; margin-bottom: 24px; }
-  h1 { font-size: 32px; font-weight: 800; margin-bottom: 12px;
-       background: linear-gradient(135deg, #0ea5e9, #7c3aed);
-       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  p { color: rgba(255,255,255,0.65); font-size: 16px; line-height: 1.6; margin-bottom: 32px; }
-  .steps {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: left;
-    margin-bottom: 32px;
-  }
-  .steps h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: .08em; }
-  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
-  .step:last-child { margin-bottom: 0; }
-  .step-num {
-    background: linear-gradient(135deg, #0ea5e9, #7c3aed);
-    width: 26px; height: 26px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; flex-shrink: 0;
-  }
-  .step-text { font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.5; padding-top: 3px; }
-  .btn {
-    display: inline-block;
-    background: linear-gradient(135deg, #0ea5e9, #7c3aed);
-    color: #fff;
-    text-decoration: none;
-    padding: 14px 32px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#07080f;--bg2:#0d0f1a;--border:rgba(255,255,255,.08);--text:#e8eaf0;--muted:#7a80a0;--cyan:#00c8ff;--grad:linear-gradient(135deg,#00c8ff,#7c3aed)}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:56px 48px;max-width:540px;width:100%;text-align:center}
+  .icon{font-size:72px;margin-bottom:24px;display:block}
+  h1{font-size:2rem;font-weight:800;margin-bottom:10px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .tagline{color:var(--muted);font-size:.95rem;line-height:1.6;margin-bottom:36px}
+
+  /* License key display */
+  .license-box{background:rgba(0,0,0,.4);border:1px solid rgba(0,200,255,.25);border-radius:14px;padding:24px;margin-bottom:28px}
+  .license-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .license-key{font-family:'Courier New',Courier,monospace;font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:var(--cyan);word-break:break-all;margin-bottom:14px;min-height:2rem}
+  .copy-btn{background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.25);color:var(--cyan);padding:8px 20px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .2s}
+  .copy-btn:hover{background:rgba(0,200,255,.22)}
+  .copy-btn.copied{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#10b981}
+  .email-note{font-size:.8rem;color:var(--muted);margin-top:10px}
+
+  /* Spinner */
+  .spinner-wrap{padding:24px 0;margin-bottom:28px}
+  .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner-text{color:var(--muted);font-size:.9rem}
+
+  /* Steps */
+  .steps{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:left;margin-bottom:28px}
+  .steps h3{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+  .step{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+  .step:last-child{margin-bottom:0}
+  .step-num{background:var(--grad);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .step-text{font-size:.88rem;color:rgba(255,255,255,.8);line-height:1.5;padding-top:3px}
+  strong{color:#fff}
+
+  .btn-home{display:inline-block;padding:12px 28px;border-radius:10px;font-size:.95rem;font-weight:700;background:var(--grad);color:#fff;text-decoration:none;border:none;cursor:pointer}
+  .error-msg{color:#ef4444;font-size:.88rem;margin-bottom:24px;background:rgba(239,68,68,.1);padding:12px 16px;border-radius:8px;border:1px solid rgba(239,68,68,.2)}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="icon">🎉</div>
   <h1>You're now Pro!</h1>
-  <p>Your RiffAI Pro subscription is active. Welcome to unlimited AI standups, agents, and knowledge.</p>
+  <p class="tagline">Your license key is ready. Save it somewhere safe — you'll need it to activate Pro on any machine.</p>
+
+  <!-- Loading state -->
+  <div id="loading-state" class="spinner-wrap">
+    <div class="spinner"></div>
+    <div class="spinner-text">Generating your license key…</div>
+  </div>
+
+  <!-- License key (shown after load) -->
+  <div id="license-state" class="license-box" style="display:none">
+    <div class="license-label">Your License Key</div>
+    <div class="license-key" id="license-key-display">—</div>
+    <button class="copy-btn" id="copy-btn" onclick="copyKey()">Copy Key</button>
+    <div class="email-note" id="email-note"></div>
+  </div>
+
+  <!-- Error state -->
+  <div id="error-state" class="error-msg" style="display:none">
+    Could not retrieve your license key. Please <a href="mailto:brandonecarr@gmail.com" style="color:#f87171">contact support</a> with your payment email.
+  </div>
 
   <div class="steps">
-    <h3>Get started</h3>
+    <h3>Activate Pro in the app</h3>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text">Open RiffAI on your computer</div>
+      <div class="step-text">Copy the license key above</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text">Go to <strong>Settings → Subscription</strong></div>
+      <div class="step-text">Open <strong>RiffAI</strong> on your Mac or Windows computer</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text">Enter the email you used to subscribe and click <strong>Activate Pro</strong></div>
+      <div class="step-text">Go to <strong>Settings → Subscription</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">Paste your key and click <strong>Activate License Key</strong></div>
     </div>
   </div>
 
-  <a href="/" class="btn">Back to Home</a>
+  <a href="/" class="btn-home">Back to Home</a>
 </div>
+
+<script>
+  let licenseKey = '';
+
+  function copyKey() {
+    if (!licenseKey) return;
+    navigator.clipboard.writeText(licenseKey).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy Key'; btn.classList.remove('copied'); }, 2500);
+    });
+  }
+
+  async function fetchLicense() {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    if (!sessionId) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+      return;
+    }
+
+    try {
+      const res  = await fetch(`/api/get-license?session_id=${encodeURIComponent(sessionId)}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.licenseKey) throw new Error(data.error || 'No key returned');
+
+      licenseKey = data.licenseKey;
+      document.getElementById('license-key-display').textContent = licenseKey;
+      if (data.email) {
+        document.getElementById('email-note').textContent = `A copy has been sent to ${data.email}`;
+      }
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('license-state').style.display = 'block';
+    } catch (err) {
+      console.error('License fetch error:', err);
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+    }
+  }
+
+  fetchLicense();
+</script>
 </body>
 </html>
