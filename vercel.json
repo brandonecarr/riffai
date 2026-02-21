@@ -1,6 +1,6 @@
 {
-  "buildCommand": null,
-  "installCommand": null,
+  "buildCommand": "echo 'Static site — no build needed'",
+  "installCommand": "echo 'Skipping install'",
   "outputDirectory": "public",
   "framework": null
 }
