@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const OpenAI = require('openai').default;
@@ -69,7 +69,23 @@ autoUpdater.on('download-progress', (progress) => {
 });
 
 autoUpdater.on('update-downloaded', (info) => {
+  // Notify renderer so it can hide the download progress banner
   sendUpdateStatus({ status: 'downloaded', version: info.version });
+
+  // Show a native OS dialog — guaranteed to appear regardless of renderer state
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Ready',
+    message: `RiffAI ${info.version} is ready to install`,
+    detail: 'A new version has been downloaded. Restart now to apply the update, or do it later when you quit.',
+    buttons: ['Restart Now', 'Later'],
+    defaultId: 0,
+    cancelId: 1,
+  }).then(({ response }) => {
+    if (response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
 });
 
 autoUpdater.on('error', (err) => {

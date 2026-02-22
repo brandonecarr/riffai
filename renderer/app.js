@@ -2744,132 +2744,43 @@ function showToast(msg) {
 
 // ── AUTO-UPDATE UI ────────────────────────────────────────────────────
 (function setupAutoUpdater() {
-  if (!window.api?.updater) return; // not running in Electron (dev browser preview)
+  if (!window.api?.updater) return; // not running in Electron
 
-  // ── Corner progress banner (available + downloading states) ──
+  // Corner banner — shows download progress only
   const banner = document.createElement('div');
   banner.id = 'update-banner';
   banner.style.cssText = [
-    'display:none',
-    'position:fixed',
-    'bottom:20px',
-    'right:20px',
-    'z-index:9999',
-    'background:linear-gradient(135deg,#0ea5e9,#7c3aed)',
-    'color:#fff',
-    'padding:14px 20px',
-    'border-radius:12px',
-    'box-shadow:0 8px 32px rgba(0,0,0,0.5)',
-    'font-family:inherit',
-    'font-size:14px',
-    'max-width:320px',
-    'line-height:1.4',
+    'display:none', 'position:fixed', 'bottom:20px', 'right:20px',
+    'z-index:9999', 'background:linear-gradient(135deg,#0ea5e9,#7c3aed)',
+    'color:#fff', 'padding:14px 20px', 'border-radius:12px',
+    'box-shadow:0 8px 32px rgba(0,0,0,0.5)', 'font-family:inherit',
+    'font-size:14px', 'max-width:320px', 'line-height:1.4',
   ].join(';');
   banner.innerHTML = `
     <div style="font-weight:700;margin-bottom:4px" id="update-title"></div>
-    <div id="update-body" style="opacity:0.85;font-size:13px"></div>
-  `;
+    <div id="update-body" style="opacity:0.85;font-size:13px"></div>`;
   document.body.appendChild(banner);
 
-  function showBanner(titleText, bodyText) {
-    banner.querySelector('#update-title').textContent = titleText;
-    banner.querySelector('#update-body').textContent  = bodyText;
+  function showBanner(t, b) {
+    banner.querySelector('#update-title').textContent = t;
+    banner.querySelector('#update-body').textContent  = b;
     banner.style.display = 'block';
   }
   function hideBanner() { banner.style.display = 'none'; }
-
-  // ── Centered modal (downloaded — must acknowledge) ──
-  function showUpdateModal(version) {
-    const existing = document.getElementById('update-ready-modal');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'update-ready-modal';
-    overlay.style.cssText = [
-      'position:fixed', 'inset:0', 'z-index:10000',
-      'background:rgba(0,0,0,0.88)',
-      'display:flex', 'align-items:center', 'justify-content:center',
-      'animation:fadeIn 0.15s ease',
-    ].join(';');
-
-    overlay.innerHTML = `
-      <div style="
-        background:#1a1a2e;
-        border:1px solid rgba(255,255,255,0.12);
-        border-radius:16px;
-        padding:40px 36px;
-        max-width:440px;
-        width:90%;
-        text-align:center;
-        font-family:inherit;
-        color:#fff;
-        box-shadow:0 24px 64px rgba(0,0,0,0.7);
-      ">
-        <div style="font-size:48px;margin-bottom:16px">🚀</div>
-        <div style="font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-0.03em">
-          RiffAI ${version} is ready
-        </div>
-        <div style="font-size:15px;opacity:0.7;margin-bottom:32px;line-height:1.5">
-          A new version has been downloaded and is ready to install.
-          Restart now to get the latest features and improvements.
-        </div>
-        <div style="display:flex;gap:12px;justify-content:center">
-          <button id="upd-later" style="
-            background:rgba(255,255,255,0.1);
-            color:#fff;
-            border:1px solid rgba(255,255,255,0.15);
-            border-radius:8px;
-            padding:11px 24px;
-            font-size:14px;
-            font-weight:600;
-            cursor:pointer;
-            font-family:inherit;
-          ">Later</button>
-          <button id="upd-now" style="
-            background:linear-gradient(135deg,#0ea5e9,#7c3aed);
-            color:#fff;
-            border:none;
-            border-radius:8px;
-            padding:11px 28px;
-            font-size:14px;
-            font-weight:700;
-            cursor:pointer;
-            font-family:inherit;
-            box-shadow:0 4px 16px rgba(14,165,233,0.4);
-          ">Restart Now</button>
-        </div>
-        <div style="margin-top:16px;font-size:12px;opacity:0.4">
-          The update will also install automatically when you next quit RiffAI.
-        </div>
-      </div>`;
-
-    overlay.querySelector('#upd-now').addEventListener('click', () => {
-      window.api.updater.installNow();
-    });
-    overlay.querySelector('#upd-later').addEventListener('click', () => {
-      overlay.remove();
-    });
-
-    document.body.appendChild(overlay);
-  }
 
   window.api.updater.onStatus((data) => {
     switch (data.status) {
       case 'available':
         showBanner('⬇️ Downloading update…', `Version ${data.version} is downloading in the background.`);
         break;
-
       case 'downloading':
-        showBanner('⬇️ Downloading update…', `${data.percent}% complete — will install on next quit.`);
+        showBanner('⬇️ Downloading update…', `${data.percent}% complete…`);
         break;
-
       case 'downloaded':
-        hideBanner();
-        showUpdateModal(data.version);
+        hideBanner(); // native dialog (from main.js) takes over from here
         break;
-
       default:
-        break; // 'checking' and 'not-available' — stay silent
+        break;
     }
   });
 })();
