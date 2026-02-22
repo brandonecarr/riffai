@@ -872,7 +872,7 @@ body { background: var(--bg); color: var(--text); overflow: hidden; height: 100v
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.88);
   z-index: 200;
   display: flex;
   align-items: center;
