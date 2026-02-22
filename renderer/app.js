@@ -2746,7 +2746,7 @@ function showToast(msg) {
 (function setupAutoUpdater() {
   if (!window.api?.updater) return; // not running in Electron (dev browser preview)
 
-  // Inject the update banner into the DOM once
+  // ── Corner progress banner (available + downloading states) ──
   const banner = document.createElement('div');
   banner.id = 'update-banner';
   banner.style.cssText = [
@@ -2766,68 +2766,106 @@ function showToast(msg) {
     'line-height:1.4',
   ].join(';');
   banner.innerHTML = `
-    <div style="font-weight:700;margin-bottom:4px" id="update-title">Checking for updates…</div>
+    <div style="font-weight:700;margin-bottom:4px" id="update-title"></div>
     <div id="update-body" style="opacity:0.85;font-size:13px"></div>
-    <div style="margin-top:10px;display:flex;gap:8px" id="update-actions"></div>
   `;
   document.body.appendChild(banner);
 
-  const title   = banner.querySelector('#update-title');
-  const body    = banner.querySelector('#update-body');
-  const actions = banner.querySelector('#update-actions');
-
-  function showBanner(titleText, bodyText, btns = []) {
-    title.textContent = titleText;
-    body.textContent  = bodyText;
-    actions.innerHTML = '';
-    btns.forEach(({ label, primary, onClick }) => {
-      const btn = document.createElement('button');
-      btn.textContent = label;
-      btn.style.cssText = [
-        'border:none',
-        'border-radius:7px',
-        'padding:6px 14px',
-        'font-size:13px',
-        'font-weight:600',
-        'cursor:pointer',
-        primary ? 'background:#fff;color:#0ea5e9' : 'background:rgba(255,255,255,0.15);color:#fff',
-      ].join(';');
-      btn.addEventListener('click', onClick);
-      actions.appendChild(btn);
-    });
+  function showBanner(titleText, bodyText) {
+    banner.querySelector('#update-title').textContent = titleText;
+    banner.querySelector('#update-body').textContent  = bodyText;
     banner.style.display = 'block';
   }
-
   function hideBanner() { banner.style.display = 'none'; }
+
+  // ── Centered modal (downloaded — must acknowledge) ──
+  function showUpdateModal(version) {
+    const existing = document.getElementById('update-ready-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'update-ready-modal';
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:10000',
+      'background:rgba(0,0,0,0.88)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'animation:fadeIn 0.15s ease',
+    ].join(';');
+
+    overlay.innerHTML = `
+      <div style="
+        background:#1a1a2e;
+        border:1px solid rgba(255,255,255,0.12);
+        border-radius:16px;
+        padding:40px 36px;
+        max-width:440px;
+        width:90%;
+        text-align:center;
+        font-family:inherit;
+        color:#fff;
+        box-shadow:0 24px 64px rgba(0,0,0,0.7);
+      ">
+        <div style="font-size:48px;margin-bottom:16px">🚀</div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-0.03em">
+          RiffAI ${version} is ready
+        </div>
+        <div style="font-size:15px;opacity:0.7;margin-bottom:32px;line-height:1.5">
+          A new version has been downloaded and is ready to install.
+          Restart now to get the latest features and improvements.
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button id="upd-later" style="
+            background:rgba(255,255,255,0.1);
+            color:#fff;
+            border:1px solid rgba(255,255,255,0.15);
+            border-radius:8px;
+            padding:11px 24px;
+            font-size:14px;
+            font-weight:600;
+            cursor:pointer;
+            font-family:inherit;
+          ">Later</button>
+          <button id="upd-now" style="
+            background:linear-gradient(135deg,#0ea5e9,#7c3aed);
+            color:#fff;
+            border:none;
+            border-radius:8px;
+            padding:11px 28px;
+            font-size:14px;
+            font-weight:700;
+            cursor:pointer;
+            font-family:inherit;
+            box-shadow:0 4px 16px rgba(14,165,233,0.4);
+          ">Restart Now</button>
+        </div>
+        <div style="margin-top:16px;font-size:12px;opacity:0.4">
+          The update will also install automatically when you next quit RiffAI.
+        </div>
+      </div>`;
+
+    overlay.querySelector('#upd-now').addEventListener('click', () => {
+      window.api.updater.installNow();
+    });
+    overlay.querySelector('#upd-later').addEventListener('click', () => {
+      overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
+  }
 
   window.api.updater.onStatus((data) => {
     switch (data.status) {
       case 'available':
-        showBanner(
-          '🚀 Update available',
-          `Version ${data.version} is downloading in the background.`,
-          [{ label: 'Dismiss', primary: false, onClick: hideBanner }]
-        );
-        setTimeout(hideBanner, 5000); // auto-hide after 5s
+        showBanner('⬇️ Downloading update…', `Version ${data.version} is downloading in the background.`);
         break;
 
       case 'downloading':
-        showBanner(
-          '⬇️ Downloading update…',
-          `${data.percent}% complete — it will install when you next quit.`,
-          []
-        );
+        showBanner('⬇️ Downloading update…', `${data.percent}% complete — will install on next quit.`);
         break;
 
       case 'downloaded':
-        showBanner(
-          '✅ Update ready to install',
-          `Version ${data.version} is ready. Restart RiffAI to apply it.`,
-          [
-            { label: 'Restart Now', primary: true,  onClick: () => window.api.updater.installNow() },
-            { label: 'Later',       primary: false, onClick: hideBanner },
-          ]
-        );
+        hideBanner();
+        showUpdateModal(data.version);
         break;
 
       default:
