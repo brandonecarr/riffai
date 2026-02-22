@@ -1,6 +1,6 @@
 {
   "name": "riffai",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "RiffAI - AI Team Standup Suite for DooGoodScoopers",
   "main": "main.js",
   "scripts": {
