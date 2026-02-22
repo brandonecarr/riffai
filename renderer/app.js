@@ -167,7 +167,7 @@ const PLAN_LIMITS = {
   },
 };
 
-const VERCEL_API = 'https://riffai.vercel.app/api';
+const VERCEL_API = 'https://riffai-five.vercel.app/api';
 
 // Subscription state — loaded from storage on init, refreshed periodically
 let subscription = {
@@ -219,7 +219,7 @@ function planLimits() { return PLAN_LIMITS[subscription.plan] || PLAN_LIMITS.fre
 
 // Opens the Stripe checkout / pricing page in the browser
 function openUpgradeCheckout() {
-  window.api.shell.openExternal('https://riffai.vercel.app/pricing.html');
+  window.api.shell.openExternal('https://riffai-five.vercel.app/pricing.html');
 }
 
 // Shows the upgrade paywall modal
