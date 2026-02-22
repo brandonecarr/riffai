@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ active: false, plan: 'free', reason: 'invalid_format' });
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe((process.env.STRIPE_SECRET_KEY || '').trim());
 
   try {
     // Search Stripe customers by license key in metadata

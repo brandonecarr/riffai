@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   const sessionId = req.query.session_id;
   if (!sessionId) return res.status(400).json({ error: 'session_id required' });
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe((process.env.STRIPE_SECRET_KEY || '').trim());
 
   try {
     // Retrieve the checkout session with customer expanded
