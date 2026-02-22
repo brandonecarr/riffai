@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
       customer_email: email || undefined,
       line_items: [
         {
-          price: process.env.STRIPE_PRO_PRICE_ID, // set this in Vercel env vars
+          price: (process.env.STRIPE_PRO_PRICE_ID || '').trim(), // set this in Vercel env vars
           quantity: 1,
         },
       ],
