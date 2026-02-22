@@ -98,8 +98,8 @@ set_env() {
   local NAME="$1"
   local VALUE="$2"
   echo "  Setting $NAME..."
-  echo "$VALUE" | vercel env add "$NAME" production --force 2>/dev/null || \
-  echo "$VALUE" | vercel env add "$NAME" production
+  printf "%s" "$VALUE" | vercel env add "$NAME" production --force 2>/dev/null || \
+  printf "%s" "$VALUE" | vercel env add "$NAME" production
 }
 
 set_env "STRIPE_SECRET_KEY"        "$STRIPE_SECRET"
