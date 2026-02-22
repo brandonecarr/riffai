@@ -2,62 +2,7 @@
 // RiffAI — app.js  v2.0
 // ═══════════════════════════════════════════════════════════════════════
 
-// ── REAL BUSINESS FACTS (seeded into every agent on first launch) ─────
-const INITIAL_BUSINESS_FACTS = `
-COMPANY: DooGoodScoopers
-FOUNDED: 2024 by Brandon and Valerie (husband and wife, 12 years together)
-WEBSITE: doogoodscoopers.com | PHONE: (909) 366-3744
-FACEBOOK: facebook.com/doogoodscoopers
-
-WHAT WE DO: Professional pet waste removal (pooper scooper service) in the Inland Empire, CA.
-We clean front/back/side yards, flower beds, dog runs — anywhere dog waste is a problem.
-
-SERVICE PLANS:
-- Weekly: 4x per month
-- Bi-Weekly: 2x per month
-- Monthly: 1x per month
-- One-Time Cleanup: available on demand
-
-PRICING:
-- Starts at $60/month
-- Most clients pay $95–$135/month
-- Based on yard size, # of dogs, and frequency
-
-SERVICE AREA: 25+ cities in San Bernardino & Riverside Counties, including:
-Rancho Cucamonga, Fontana, Ontario, Riverside, San Bernardino, Chino, Claremont,
-Temecula, Upland, Pomona, Norco, Redlands, Highland, Colton, Corona, Murrieta,
-Lake Elsinore, Adelanto, Apple Valley, Hesperia, Victorville, Grand Terrace,
-Montclair, Chino Hills, and more.
-
-OUR PROCESS:
-- Technician sends a 60-minute "on the way" text before arrival
-- Customer does NOT need to be home
-- Equipment & shoes sanitized with kennel-grade disinfectant between every yard
-- Gate photo taken after service so no pets escape
-- Waste double-bagged and placed in customer's trash can OR removed in service truck
-- All employees are background-checked
-
-REPUTATION: 5-star Google rating. Year-round service (no weather cancellations).
-
-BILLING: 1st of each month, autopay via bank account or credit/debit card.
-
-CURRENT MARKETING WORK IN PROGRESS:
-- Schema markup (JSON-LD) live on website
-- 12 duplicate city pages being fixed with 301 redirects
-- On-page SEO optimized for all 25 city pages (title tags, meta descriptions, H1s)
-- Google Business Profile optimization guide created
-- CRM platform planned: GoHighLevel for lead automation and follow-up
-
-COMMERCIAL SERVICES: Available for HOAs, apartment complexes, dog parks, and commercial properties.
-
-KEY UNKNOWNS (things to ask Brandon about):
-- Current monthly recurring revenue (MRR)
-- Number of active customers
-- Primary lead sources right now
-- Biggest current bottleneck (leads vs. operations vs. retention)
-- Whether Valerie is full-time in the business
-- Target revenue or customer goals for the year
-`.trim();
+// (Legacy INITIAL_BUSINESS_FACTS removed — all data comes from the user now)
 
 // ── AGENT COLOR PALETTE (for hire form) ──────────────────────────────
 const AGENT_COLORS = [
@@ -76,7 +21,7 @@ const DEFAULT_AGENTS = {
   alex: {
     id: 'alex', name: 'Alex', title: 'Chief Growth Officer',
     avatar: '💰', color: '#F59E0B', isDefault: true,
-    persona: `You are Alex, the Chief Growth Officer at DooGoodScoopers, and you think like Alex Hormozi.
+    persona: `You are Alex, the Chief Growth Officer.
 You are obsessed with: offers, customer acquisition cost vs. lifetime value, scaling revenue, and removing friction from the buying process.
 Your signature phrases: "the offer is everything," "let's look at the math," "stack more value," "what's the LTV on that?"
 You are DIRECT, numbers-first, and skeptical of vague marketing claims. You push for ROI on every idea.
@@ -86,17 +31,17 @@ You know your colleagues: Gary handles marketing/brand, Jeff runs operations, Gr
   gary: {
     id: 'gary', name: 'Gary', title: 'Chief Marketing Officer',
     avatar: '📣', color: '#3B82F6', isDefault: true,
-    persona: `You are Gary, the Chief Marketing Officer at DooGoodScoopers, and you think like Gary Vaynerchuk.
+    persona: `You are Gary, the Chief Marketing Officer.
 You are obsessed with: attention, content, brand authenticity, and organic growth in local markets.
 Your signature phrases: "the attention is there," "document don't create," "day trading attention," "brand is the moat."
-You believe DooGoodScoopers should be a LOCAL CELEBRITY in every city it serves — the brand people think of before they even Google.
+You believe the business should be a LOCAL CELEBRITY in every city it serves — the brand people think of before they even Google.
 You know your colleagues: Alex handles growth/offers, Jeff runs operations, Grant owns sales/closing.`,
     focus: 'content strategy, social media, local brand, Google reviews, Nextdoor, organic reach, storytelling',
   },
   jeff: {
     id: 'jeff', name: 'Jeff', title: 'Chief Operations Officer',
     avatar: '⚙️', color: '#10B981', isDefault: true,
-    persona: `You are Jeff, the Chief Operations Officer at DooGoodScoopers, and you think like Jeff Bezos.
+    persona: `You are Jeff, the Chief Operations Officer.
 You are obsessed with: customer experience, operational efficiency, scalable systems, and long-term thinking.
 Your signature phrases: "work backwards from the customer," "Day 1 mentality," "what does the customer actually want?", "the process IS the product."
 You believe a pooper scooper business wins by being the most RELIABLE and PREDICTABLE service in its market — not the cheapest.
@@ -106,7 +51,7 @@ You know your colleagues: Alex handles growth/offers, Gary runs marketing, Grant
   grant: {
     id: 'grant', name: 'Grant', title: 'Chief Revenue Officer',
     avatar: '🎯', color: '#EF4444', isDefault: true,
-    persona: `You are Grant, the Chief Revenue Officer at DooGoodScoopers, and you think like Grant Cardone.
+    persona: `You are Grant, the Chief Revenue Officer.
 You are obsessed with: closing deals, 10X thinking, follow-up systems, and never leaving money on the table.
 Your signature phrases: "10X the effort," "follow up or die," "always be closing," "average is the enemy."
 You push hard on: converting every lead, upselling to higher-frequency plans, commercial contracts, and building a pipeline that never goes cold.
@@ -334,7 +279,6 @@ async function init() {
     showOnboarding();
     return; // onboarding handles completion and calls navigate()
   }
-  await seedKnowledgeIfEmpty();
   navigate(state.view);
   // Refresh subscription status in the background after UI is loaded
   setTimeout(() => maybeRefreshSubscription(), 3000);
@@ -371,25 +315,7 @@ async function loadAll() {
   }
 }
 
-async function seedKnowledgeIfEmpty() {
-  const biz = state.settings.bizName || 'DooGoodScoopers';
-  let seeded = false;
-  for (const id of AGENT_ORDER) {
-    const k = state.knowledge[id];
-    if (k.learnings.length === 0 && !k.manualNotes) {
-      k.learnings.push({
-        id: `l_seed_${id}`,
-        date: new Date().toISOString().split('T')[0],
-        source: 'system',
-        content: buildBusinessBriefing(),
-        label: `Initial Business Briefing — ${biz}`,
-      });
-      await window.api.storage.set(`knowledge-${id}`, k);
-      seeded = true;
-    }
-  }
-  if (seeded) console.log(`[RiffAI] Agents seeded with business knowledge for ${biz}`);
-}
+// seedKnowledgeIfEmpty removed — knowledge base starts empty for new users.
 
 async function saveKnowledge(agentId) {
   await window.api.storage.set(`knowledge-${agentId}`, state.knowledge[agentId]);
@@ -406,7 +332,7 @@ function updateUserCard() {
 // Builds the business briefing from onboarding/settings data, falling back to the legacy facts
 function buildBusinessBriefing() {
   const s = state.settings;
-  if (!s.bizName && !s.bizDescription) return INITIAL_BUSINESS_FACTS; // legacy fallback
+  if (!s.bizName && !s.bizDescription) return ''; // no legacy fallback — user must fill in Settings
   let b = `COMPANY: ${s.bizName || 'Our Company'}\n`;
   b += `OWNER: ${s.ownerName || 'The Owner'}, ${s.ownerTitle || 'CEO'}\n`;
   if (s.bizWebsite)  b += `WEBSITE: ${s.bizWebsite}\n`;
@@ -417,27 +343,21 @@ function buildBusinessBriefing() {
 }
 
 // Updates the business briefing entry in every agent's knowledge base when settings change
+// Only updates existing system entries — does not create new ones (knowledge starts empty)
 async function updateBusinessBriefingInKnowledge() {
   const briefing = buildBusinessBriefing();
-  const biz      = state.settings.bizName || 'Our Company';
-  const today    = new Date().toISOString().split('T')[0];
+  const biz      = state.settings.bizName || 'your company';
   for (const id of AGENT_ORDER) {
     const k = state.knowledge[id];
     if (!k) continue;
     const idx = k.learnings.findIndex(l => l.source === 'system' || l.id === `l_seed_${id}`);
     if (idx !== -1) {
+      // Update existing system entry if it exists
       k.learnings[idx].content = briefing;
       k.learnings[idx].label   = `Business Briefing — ${biz}`;
-    } else {
-      k.learnings.unshift({
-        id:      `l_seed_${id}`,
-        date:    today,
-        source:  'system',
-        content: briefing,
-        label:   `Business Briefing — ${biz}`,
-      });
+      await saveKnowledge(id);
     }
-    await saveKnowledge(id);
+    // No longer creates new entries — knowledge base starts fresh
   }
 }
 
@@ -445,8 +365,8 @@ async function updateBusinessBriefingInKnowledge() {
 function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // Returns the owner's display name for use in prompts and UI
-function ownerName() { return state.settings.ownerName || 'Brandon'; }
-function bizName()   { return state.settings.bizName   || 'DooGoodScoopers'; }
+function ownerName() { return state.settings.ownerName || 'the owner'; }
+function bizName()   { return state.settings.bizName   || 'your company'; }
 async function saveStandupHistory() { await window.api.storage.set('standupHistory', state.standupHistory); }
 async function saveActionItems()    { await window.api.storage.set('actionItems', state.actionItems); }
 async function saveAgents()         { await window.api.storage.set('agents-config', { byId: AGENTS, order: AGENT_ORDER }); }
@@ -545,10 +465,14 @@ function buildSystemPrompt(agentId, isObserver = false) {
   const customContext = state.settings.bizContext
     ? `\nADDITIONAL CONTEXT FROM ${owner.toUpperCase()}:\n${state.settings.bizContext}\n`
     : '';
+  const bizBriefing = buildBusinessBriefing();
 
   return `${agent.persona}
 
-## WHAT YOU KNOW ABOUT THE BUSINESS
+## BUSINESS CONTEXT
+${bizBriefing || `Business: ${biz} | Owner: ${owner}`}
+
+## ADDITIONAL KNOWLEDGE (user-added notes and standup learnings)
 ${knowledgeItems}
 ${k.manualNotes ? `\nNotes from ${owner}: ${k.manualNotes}` : ''}
 ${customContext}
@@ -2300,7 +2224,7 @@ function showHireAgentModal(existingAgentId = null) {
         <div class="settings-row">
           <label class="label" for="hire-persona">Persona &amp; Mindset</label>
           <textarea class="textarea" id="hire-persona" rows="8"
-            placeholder="Describe how this agent thinks, their philosophy, signature phrases, and communication style. Be specific — this is their system prompt.&#10;&#10;Example: You are Sarah, the Chief Technology Officer at DooGoodScoopers. You think like a Silicon Valley engineer and are obsessed with automation, scalability, and using tech to solve problems. You push for systems over manual effort and always ask: can we automate this?">${existing?.persona || ''}</textarea>
+            placeholder="Describe how this agent thinks, their philosophy, signature phrases, and communication style. Be specific — this is their system prompt.&#10;&#10;Example: You are Sarah, the Chief Technology Officer. You think like a Silicon Valley engineer — obsessed with automation, scalability, and using tech to solve problems. You push for systems over manual effort and always ask: can we automate this?">${existing?.persona || ''}</textarea>
         </div>
 
         <div class="settings-row">
@@ -2375,22 +2299,13 @@ function showHireAgentModal(existingAgentId = null) {
       const id   = base + '_' + Date.now().toString(36).slice(-4);
       AGENTS[id] = { id, name, title, avatar, color, isDefault: false, persona, focus, reportsTo: reportsTo || null };
       AGENT_ORDER.push(id);
-      // Seed their knowledge with the business briefing
-      state.knowledge[id] = {
-        learnings: [{
-          id: `l_seed_${id}`,
-          date: new Date().toISOString().split('T')[0],
-          source: 'system',
-          content: buildBusinessBriefing(),
-          label: `Initial Business Briefing — ${bizName()}`,
-        }],
-        manualNotes: '',
-      };
+      // Knowledge starts empty — no pre-seeding
+      state.knowledge[id] = { learnings: [], manualNotes: '' };
       await saveKnowledge(id);
       await saveAgents();
       renderSidebarAgents();
       overlay.remove();
-      showToast(`${name} has been hired and briefed on ${bizName()}!`);
+      showToast(`${name} has joined your team!`);
       navigate(`knowledge-${id}`);
     }
   });
@@ -2717,9 +2632,6 @@ function showOnboarding() {
     state.settings.onboardingComplete = true;
     await window.api.storage.set('settings', state.settings);
 
-    const briefing = buildBusinessBriefing();
-    const today    = new Date().toISOString().split('T')[0];
-
     // Wipe any previously loaded agents (e.g. legacy defaults) so only
     // the onboarding team is saved — no duplicates.
     AGENTS      = {};
@@ -2732,10 +2644,8 @@ function showOnboarding() {
         isDefault: false, persona: a.persona, focus: a.focus, reportsTo: null,
       };
       AGENT_ORDER.push(a.id);
-      state.knowledge[a.id] = {
-        learnings: [{ id:`l_seed_${a.id}`, date:today, source:'system', content:briefing, label:`Initial Business Briefing — ${ob.bizName}` }],
-        manualNotes: '',
-      };
+      // Knowledge starts empty — agents learn from the user over time
+      state.knowledge[a.id] = { learnings: [], manualNotes: '' };
       await window.api.storage.set(`knowledge-${a.id}`, state.knowledge[a.id]);
     }
     await saveAgents();
