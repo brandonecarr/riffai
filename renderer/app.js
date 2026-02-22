@@ -182,6 +182,25 @@ async function loadSubscription() {
   if (saved) subscription = { ...subscription, ...saved };
 }
 
+// Trim AGENT_ORDER to plan limit (free=1). Saves a backup so Pro restore works.
+async function enforceAgentPlanLimits() {
+  const limit = planLimits().maxAgents;
+  if (limit === Infinity) {
+    // Pro: restore any agents that were hidden while on free tier
+    const backup = await window.api.storage.get('agents-order-backup');
+    if (backup && backup.length > AGENT_ORDER.length) {
+      AGENT_ORDER = backup.filter(id => AGENTS[id]);
+      await saveAgents();
+      await window.api.storage.set('agents-order-backup', null);
+    }
+  } else if (AGENT_ORDER.length > limit) {
+    // Free: hide extras (save backup so upgrading restores them)
+    await window.api.storage.set('agents-order-backup', [...AGENT_ORDER]);
+    AGENT_ORDER = AGENT_ORDER.slice(0, limit);
+    await saveAgents();
+  }
+}
+
 async function saveSubscription() {
   await window.api.storage.set('subscription', subscription);
 }
@@ -278,9 +297,18 @@ function wouldExceedStandupLimit() {
   return isFree() && standupsToday() >= planLimits().standupsPerDay;
 }
 
-// Returns true if a knowledge entry text exceeds the free-tier char limit
-function wouldExceedKnowledgeLimit(text) {
-  return isFree() && text.length > planLimits().knowledgeBaseChars;
+// Returns total chars stored in an agent's knowledge base
+function getTotalKnowledgeChars(agentId) {
+  const k = state.knowledge[agentId];
+  if (!k) return 0;
+  return (k.learnings || []).reduce((sum, l) => sum + (l.content || '').length, 0);
+}
+
+// Returns true if adding newText would push agent's total knowledge over the free-tier limit
+function wouldExceedKnowledgeLimit(agentId, newText) {
+  if (isPro()) return false;
+  const limit = planLimits().knowledgeBaseChars;
+  return getTotalKnowledgeChars(agentId) + (newText || '').length > limit;
 }
 
 // Returns the logo's absolute file:// URL by reading the hidden preload img —
@@ -297,6 +325,7 @@ async function init() {
 
   await loadAll();
   await loadSubscription();
+  await enforceAgentPlanLimits();
   updateUserCard();
   setupNav();
   renderSidebarAgents();
@@ -792,13 +821,14 @@ function renderStandupRoom() {
   wrap.id = 'standup-view';
   const inProgress = !!state.currentStandup;
 
-  // Mutable selection set — defaults to all agents, or current participants if resuming
+  // Mutable selection set — defaults to plan-allowed agents, or current participants if resuming
+  const allowedAgentIds = AGENT_ORDER.slice(0, planLimits().maxAgents);
   const selectedIds = new Set(
-    inProgress ? (state.currentStandup.participantIds || AGENT_ORDER) : AGENT_ORDER
+    inProgress ? (state.currentStandup.participantIds || allowedAgentIds) : allowedAgentIds
   );
 
   // Pill row agents — only participants when live
-  const pillIds = inProgress ? (state.currentStandup.participantIds || AGENT_ORDER) : [];
+  const pillIds = inProgress ? (state.currentStandup.participantIds || allowedAgentIds) : [];
 
   wrap.innerHTML = `
     <div class="standup-topbar">
@@ -826,6 +856,9 @@ function renderStandupRoom() {
           </div>`
         : `<div class="agent-select-area" id="agent-select-area">
              <span class="agent-select-label">Participants</span>
+             ${isFree() && AGENT_ORDER.length >= planLimits().maxAgents
+               ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Free plan: 1 agent per standup. <a href="#" id="standup-upgrade-link" style="color:var(--cyan)">Upgrade to Pro</a> for full team standups.</div>`
+               : ''}
            </div>`
       }
     </div>
@@ -866,7 +899,11 @@ function renderStandupRoom() {
   // Populate agent selection cards (pre-standup only)
   if (!inProgress) {
     const selectArea = wrap.querySelector('#agent-select-area');
-    AGENT_ORDER.forEach(id => {
+    // Wire upgrade link if present (free tier notice)
+    const upgradeLink = selectArea.querySelector('#standup-upgrade-link');
+    if (upgradeLink) upgradeLink.addEventListener('click', (e) => { e.preventDefault(); showUpgradeModal('Upgrade to Pro to run full team standups with all your agents.'); });
+
+    allowedAgentIds.forEach(id => {
       const a = AGENTS[id];
       if (!a) return;
       const shortRole = a.title.replace(/chief\s+/i, '').replace(/\s+officer$/i, '').trim();
@@ -1978,8 +2015,8 @@ function renderKnowledge(agentId) {
   wrap.querySelector('#btn-save-note').addEventListener('click', async () => {
     const note = wrap.querySelector('#manual-note').value.trim();
     if (!note) return;
-    if (wouldExceedKnowledgeLimit(note)) {
-      showUpgradeModal(`Free plan limits knowledge base entries to ${planLimits().knowledgeBaseChars.toLocaleString()} characters. Upgrade to Pro for unlimited knowledge.`);
+    if (wouldExceedKnowledgeLimit(agentId, note)) {
+      showUpgradeModal(`Free plan limits the knowledge base to ${planLimits().knowledgeBaseChars.toLocaleString()} total characters. Upgrade to Pro for unlimited knowledge.`);
       return;
     }
     k.manualNotes = note;
