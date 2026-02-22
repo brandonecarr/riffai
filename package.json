@@ -27,6 +27,7 @@
     "copyright": "Copyright 2024 DooGoodScoopers",
     "mac": {
       "category": "public.app-category.business",
+      "artifactName": "RiffAI-latest-universal.dmg",
       "icon": "assets/icon.icns",
       "target": [
         {
@@ -48,7 +49,7 @@
           ]
         }
       ],
-      "artifactName": "RiffAI-Setup-${version}.exe"
+      "artifactName": "RiffAI-Setup-latest.exe"
     },
     "nsis": {
       "oneClick": false,
@@ -104,7 +105,7 @@
     "publish": {
       "provider": "github",
       "owner": "brandonecarr",
-      "repo": "riffai-releases",
+      "repo": "riffai",
       "releaseType": "release"
     }
   },
